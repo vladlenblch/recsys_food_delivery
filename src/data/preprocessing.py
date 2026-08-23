@@ -54,17 +54,37 @@ def filter_by_thresholds(sequence_data, min_user_orders=MIN_USER_ORDERS, min_pro
     return sequence_data
 
 
-def build_sequences(sequence_data):
+def build_item_mappings(sequence_data):
+    unique_products = sorted(sequence_data['product_id'].unique())
+    item2idx = {pid: idx for idx, pid in enumerate(unique_products)}
+    idx2item = {idx: pid for idx, pid in enumerate(unique_products)}
+
+    return item2idx, idx2item
+
+
+def build_sequences(sequence_data, item2idx):
     sequence_data = sequence_data.sort_values(['user_id', 'order_number', 'add_to_cart_order'])
-    sequences = sequence_data.groupby('user_id')['product_id'].apply(list).to_dict()
+    sequences = (
+        sequence_data.groupby('user_id')['product_id']
+        .apply(lambda ids: [item2idx[pid] for pid in ids])
+        .to_dict()
+    )
 
     return sequences
 
 
-def save_processed_data(sequences, catalog, output_dir=PROCESSED_DIR):
+def save_processed_data(sequences, catalog, item2idx, idx2item, output_dir=PROCESSED_DIR):
     output_dir.mkdir(parents=True, exist_ok=True)
     with open(output_dir / "sequences.pkl", "wb") as f:
         pickle.dump(sequences, f)
+
+    mappings = {
+        'item2idx': item2idx,
+        'idx2item': idx2item,
+        'vocab_size': len(item2idx)
+    }
+    with open(output_dir / "item_mappings.pkl", "wb") as f:
+        pickle.dump(mappings, f)
 
     catalog.to_csv(output_dir / "product_info.csv", index=False)
 
@@ -72,10 +92,13 @@ def save_processed_data(sequences, catalog, output_dir=PROCESSED_DIR):
 def main():
     aisles, departments, order_products_prior, order_products_train, orders, products = load_raw_data()
     catalog = build_product_catalog(products, aisles, departments)
+
     sequence_data = build_sequence_table(order_products_prior, order_products_train, orders)
     sequence_data = filter_by_thresholds(sequence_data)
-    sequences = build_sequences(sequence_data)
-    save_processed_data(sequences, catalog)
+    item2idx, idx2item = build_item_mappings(sequence_data)
+    sequences = build_sequences(sequence_data, item2idx)
+
+    save_processed_data(sequences, catalog, item2idx, idx2item)
 
 
 if __name__ == "__main__":
