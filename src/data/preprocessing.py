@@ -89,6 +89,22 @@ def save_processed_data(sequences, catalog, item2idx, idx2item, output_dir=PROCE
     catalog.to_csv(output_dir / "product_info.csv", index=False)
 
 
+def build_leave_one_out(sequences):
+    split_data = {}
+
+    for user_id, seq in sequences.items():
+        train = seq[:-2]
+        val_target = seq[-2]
+        test_target = seq[-1]
+        split_data[user_id] = {
+            "train": train,
+            "val_target": val_target,
+            "test_target": test_target
+        }
+
+    return split_data
+
+
 def main():
     aisles, departments, order_products_prior, order_products_train, orders, products = load_raw_data()
     catalog = build_product_catalog(products, aisles, departments)
