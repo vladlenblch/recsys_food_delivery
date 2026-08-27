@@ -56,10 +56,11 @@ def filter_by_thresholds(sequence_data, min_user_orders=MIN_USER_ORDERS, min_pro
 
 def build_item_mappings(sequence_data):
     unique_products = sorted(sequence_data['product_id'].unique())
-    item2idx = {pid: idx for idx, pid in enumerate(unique_products)}
-    idx2item = {idx: pid for idx, pid in enumerate(unique_products)}
+    item2idx = {pid: idx + 1 for idx, pid in enumerate(unique_products)}
+    idx2item = {idx + 1: pid for idx, pid in enumerate(unique_products)}
+    vocab_size = len(unique_products) + 1
 
-    return item2idx, idx2item
+    return item2idx, idx2item, vocab_size
 
 
 def build_sequences(sequence_data, item2idx):
@@ -73,7 +74,7 @@ def build_sequences(sequence_data, item2idx):
     return sequences
 
 
-def save_processed_data(sequences, catalog, item2idx, idx2item, output_dir=PROCESSED_DIR):
+def save_processed_data(sequences, catalog, item2idx, idx2item, vocab_size, output_dir=PROCESSED_DIR):
     output_dir.mkdir(parents=True, exist_ok=True)
     with open(output_dir / "sequences.pkl", "wb") as f:
         pickle.dump(sequences, f)
@@ -81,7 +82,8 @@ def save_processed_data(sequences, catalog, item2idx, idx2item, output_dir=PROCE
     mappings = {
         'item2idx': item2idx,
         'idx2item': idx2item,
-        'vocab_size': len(item2idx)
+        'vocab_size': vocab_size,
+        'num_items': len(item2idx)
     }
     with open(output_dir / "item_mappings.pkl", "wb") as f:
         pickle.dump(mappings, f)
@@ -111,10 +113,10 @@ def main():
 
     sequence_data = build_sequence_table(order_products_prior, order_products_train, orders)
     sequence_data = filter_by_thresholds(sequence_data)
-    item2idx, idx2item = build_item_mappings(sequence_data)
+    item2idx, idx2item, vocab_size = build_item_mappings(sequence_data)
     sequences = build_sequences(sequence_data, item2idx)
 
-    save_processed_data(sequences, catalog, item2idx, idx2item)
+    save_processed_data(sequences, catalog, item2idx, idx2item, vocab_size)
 
 
 if __name__ == "__main__":
