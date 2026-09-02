@@ -2,11 +2,14 @@ import torch
 from torch.utils.data import Dataset
 
 class SessionDataset(Dataset):
-    def __init__(self, train_prefixes):
+    def __init__(self, train_prefixes, max_len=None):
         if isinstance(train_prefixes, dict):
             self.sessions = list(train_prefixes.values())
         else:
             self.sessions = train_prefixes
+
+        if max_len is not None:
+            self.sessions = [seq[:max_len] for seq in self.sessions if len(seq) > 0]
 
     def __len__(self):
         return len(self.sessions)

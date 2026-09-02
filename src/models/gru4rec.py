@@ -1,4 +1,3 @@
-import torch
 import torch.nn as nn
 
 class GRU4Rec(nn.Module):
